@@ -2,8 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:convert';
+
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() => runApp(MyApp());
 
@@ -13,7 +16,8 @@ class MyApp extends StatelessWidget {
     final wordPair = WordPair.random();
     return MaterialApp(
       title: 'Startup Name Generator',
-      theme: ThemeData(          // Add the 3 lines from here...
+      theme: ThemeData(
+        // Add the 3 lines from here...
         primarySwatch: Colors.green,
       ),
       home: RandomWords(),
@@ -30,6 +34,19 @@ class _RandomWordsState extends State<RandomWords> {
   final _suggestions = <WordPair>[];
   final _saved = <WordPair>{};
   final _biggerFont = const TextStyle(fontSize: 18.0);
+
+  Future getBeersData() async {
+    var res = await http.get(Uri.https('https://api.brewerydb.com/v2/',
+        "beers?key=325db7a335e682c607ad018cc1b32151"));
+    List<Beer> beers = [];
+    var jsonDate = jsonDecode(res.body);
+    for (var beer in jsonDate) {
+      var imgUrl = beer['labels']['medium'];
+      beers.add(Beer(beer['name'], imgUrl, beer['abv']));
+    }
+    print(beers.length);
+    return beers;
+  }
 
   Widget _buildRow(WordPair pair) {
     final alreadySaved = _saved.contains(pair);
@@ -105,10 +122,15 @@ class _RandomWordsState extends State<RandomWords> {
       appBar: AppBar(
         title: const Text('Startup Name Generator'),
         actions: [
-            IconButton(icon: Icon(Icons.list), onPressed: _pushSaved),
+          IconButton(icon: Icon(Icons.list), onPressed: _pushSaved),
         ],
       ),
       body: _buildSuggestions(),
     );
   }
+}
+
+class Beer {
+  final String name, imgUrl, abv;
+  Beer(this.name, this.imgUrl, this.abv);
 }
