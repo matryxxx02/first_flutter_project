@@ -38,7 +38,7 @@ class _RandomWordsState extends State<RandomWords> {
   final _biggerFont = const TextStyle(fontSize: 18.0);
 
   Widget _buildRow(Beer beer) {
-    final alreadySaved = false; //_saved.contains(beer);
+    final alreadySaved = _saved.contains(beer);
     return ListTile(
         title: Text(
           beer.name,
