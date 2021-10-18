@@ -7,13 +7,14 @@ import 'dart:convert';
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'beer_model.dart';
+import 'beer_service.dart';
 
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final wordPair = WordPair.random();
     return MaterialApp(
       title: 'Startup Name Generator',
       theme: ThemeData(
@@ -31,28 +32,16 @@ class RandomWords extends StatefulWidget {
 }
 
 class _RandomWordsState extends State<RandomWords> {
-  final _suggestions = <WordPair>[];
-  final _saved = <WordPair>{};
+  final BeerService beerService = BeerService();
+  final _beers = <Beer>[];
+  final _saved = <Beer>{};
   final _biggerFont = const TextStyle(fontSize: 18.0);
 
-  Future getBeersData() async {
-    var res = await http.get(Uri.https('https://api.brewerydb.com/v2/',
-        "beers?key=325db7a335e682c607ad018cc1b32151"));
-    List<Beer> beers = [];
-    var jsonDate = jsonDecode(res.body);
-    for (var beer in jsonDate) {
-      var imgUrl = beer['labels']['medium'];
-      beers.add(Beer(beer['name'], imgUrl, beer['abv']));
-    }
-    print(beers.length);
-    return beers;
-  }
-
-  Widget _buildRow(WordPair pair) {
-    final alreadySaved = _saved.contains(pair);
+  Widget _buildRow(Beer beer) {
+    final alreadySaved = false; //_saved.contains(beer);
     return ListTile(
         title: Text(
-          pair.asPascalCase,
+          beer.name,
           style: _biggerFont,
         ),
         trailing: Icon(
@@ -63,25 +52,22 @@ class _RandomWordsState extends State<RandomWords> {
         onTap: () {
           setState(() {
             if (alreadySaved) {
-              _saved.remove(pair);
+              _saved.remove(beer);
             } else {
-              _saved.add(pair);
+              _saved.add(beer);
             }
           });
         });
   }
 
-  Widget _buildSuggestions() {
+  Widget _buildSuggestions(List<Beer> beers) {
+    _beers.addAll(beers);
+    print(_beers.length);
     return ListView.builder(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
+        itemCount: beers.length,
         itemBuilder: /*1*/ (context, i) {
-          if (i.isOdd) return const Divider(); /*2*/
-
-          final index = i ~/ 2; /*3*/
-          if (index >= _suggestions.length) {
-            _suggestions.addAll(generateWordPairs().take(10)); /*4*/
-          }
-          return _buildRow(_suggestions[index]);
+          return _buildRow(_beers[i]);
         });
   }
 
@@ -91,10 +77,10 @@ class _RandomWordsState extends State<RandomWords> {
         // NEW lines from here...
         builder: (BuildContext context) {
           final tiles = _saved.map(
-            (WordPair pair) {
+            (Beer beer) {
               return ListTile(
                 title: Text(
-                  pair.asPascalCase,
+                  beer.name,
                   style: _biggerFont,
                 ),
               );
@@ -125,12 +111,16 @@ class _RandomWordsState extends State<RandomWords> {
           IconButton(icon: Icon(Icons.list), onPressed: _pushSaved),
         ],
       ),
-      body: _buildSuggestions(),
+      body: FutureBuilder<List<Beer>>(
+          future: beerService.getBeers(),
+          builder: (BuildContext context, AsyncSnapshot<List<Beer>> snapshot) {
+            if (snapshot.hasData) {
+              List<Beer>? beers = snapshot.data;
+              print(beers);
+              return _buildSuggestions(beers!);
+            }
+            return Center(child: CircularProgressIndicator());
+          }),
     );
   }
-}
-
-class Beer {
-  final String name, imgUrl, abv;
-  Beer(this.name, this.imgUrl, this.abv);
 }
