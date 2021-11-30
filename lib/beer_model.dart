@@ -13,7 +13,7 @@ class Beer {
   
   factory Beer.fromJson(Map<String, dynamic> json) {
     return Beer(
-        name: json["name"],
+        name: json["name"], 
         urlImage: "rer",
         abv: "rere");
   }
